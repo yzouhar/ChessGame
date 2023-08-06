@@ -22,7 +22,7 @@ public class SpotPanel extends JPanel implements MouseListener, MouseMotionListe
 		System.out.println("column: " + spot.getColumn());
 		ChessPiece chessPiece = spot.getChessPiece();
 		if (chessPiece != null) {
-			System.out.println("Chess Piece: " + chessPiece.getCategory());
+			System.out.println("Chess Piece: " + chessPiece.category);
 		}
 	}
 
@@ -64,7 +64,14 @@ public class SpotPanel extends JPanel implements MouseListener, MouseMotionListe
 
 	@Override
 	public void mouseDragged(MouseEvent e) {
+		/*System.out.println("Mouse Released .. " );
+		System.out.println("row: " + spot.getRow());
+		System.out.println("column: " + spot.getColumn());
+		ChessPiece chessPiece = spot.getChessPiece();
 
+		if (chessPiece != null) {
+			System.out.println("Chess Piece: " + chessPiece.getCategory());
+		}*/
 
 	}
 

@@ -2,6 +2,7 @@ package View;
 
 import Model.Board;
 import Model.ChessPiece;
+import Model.Spot;
 
 import javax.swing.*;
 import java.awt.event.MouseEvent;
@@ -9,7 +10,7 @@ import java.awt.event.MouseListener;
 import java.io.IOException;
 
 public class ApplicationFrame extends JFrame  {
-	ChessBoardPanel chessBoard = new ChessBoardPanel();
+	ChessBoardPanel chessBoard = new ChessBoardPanel(new Spot());
 
 	public ApplicationFrame() throws IOException {
 		this.add(chessBoard);

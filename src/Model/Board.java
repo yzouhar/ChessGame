@@ -7,6 +7,7 @@ public class Board {
 	ChessPiece[]  chessPieces = new ChessPiece[32];
 
 	public Board() {
+
 	}
 
 

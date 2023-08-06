@@ -6,11 +6,16 @@ import Model.SpotPanel;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
-public class ChessBoardPanel extends JPanel{
+public class ChessBoardPanel extends JPanel {
+	
+	Spot spot = new Spot();
 
 	static String whitePawn = "resources/images/whitePawn.png";
 	static String blackPawn = "resources/images/blackPawn.png";
@@ -36,7 +41,7 @@ public class ChessBoardPanel extends JPanel{
 	static SpotPanel[][] spots = new SpotPanel[8][8];
 
 
-	public ChessBoardPanel() throws IOException {
+	public ChessBoardPanel(Spot spot) throws IOException {
 		this.setLayout(new GridLayout(8, 8));
 		createBoardTiles(this);
 	}
@@ -92,8 +97,10 @@ public class ChessBoardPanel extends JPanel{
 		}
 	}
 	public static void addChessPiece(ChessPiece chessPiece, int row, int column) throws IOException {
-		SpotPanel spotPanel = spots[chessPiece.getPosition().getRow()][chessPiece.getPosition().getColumn()];
-		BufferedImage myPicture = ImageIO.read(new File(chessPiece.getImage()));
+		SpotPanel spotPanel = spots[row][column];
+		spotPanel.getSpot().setChessPiece(chessPiece);
+		chessPiece.setPosition(spotPanel.getSpot());
+		BufferedImage myPicture = ImageIO.read(new File(chessPiece.getImage())) ;
 		JLabel picLabel = new JLabel(new ImageIcon(myPicture));
 		spotPanel.add(picLabel);
 
