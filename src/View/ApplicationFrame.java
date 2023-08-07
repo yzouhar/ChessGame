@@ -28,4 +28,6 @@ public class ApplicationFrame extends JFrame  {
 			throw new RuntimeException(e);
 		}
 	}
+
+
 }

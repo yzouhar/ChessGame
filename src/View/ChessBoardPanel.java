@@ -3,6 +3,7 @@ package View;
 import Model.ChessPiece;
 import Model.Spot;
 import Model.SpotPanel;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -13,9 +14,9 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
-public class ChessBoardPanel extends JPanel {
+public class ChessBoardPanel extends JPanel implements MouseListener, MouseMotionListener{
 	
-	Spot spot = new Spot();
+	Spot spot;
 
 	static String whitePawn = "resources/images/whitePawn.png";
 	static String blackPawn = "resources/images/blackPawn.png";
@@ -35,26 +36,25 @@ public class ChessBoardPanel extends JPanel {
 	static String whiteQueen = "resources/images/whiteQueen.png";
 	static String blackQueen ="resources/images/blackQueen.png";
 
-	static JLabel pawnLabel;
-
-
 	static SpotPanel[][] spots = new SpotPanel[8][8];
 
 
 	public ChessBoardPanel(Spot spot) throws IOException {
 		this.setLayout(new GridLayout(8, 8));
+		this.spot = spot;
+		this.addMouseListener(this);
+		this.addMouseMotionListener(this);
 		createBoardTiles(this);
+
 	}
 
 	public void placeChessPiece() throws IOException, InterruptedException {
-
-
 		for (int i = 0; i < 8; i++) {
 			addChessPiece(new ChessPiece(ChessPiece.Category.PAWN, ChessPiece.Color.BLACK, blackPawn), 1, i);
 		}
 
 		for (int i = 0; i <8; i++) {
-			addChessPiece(new ChessPiece( ChessPiece.Category.PAWN, ChessPiece.Color.WHITE, whitePawn), 6, i);
+			addChessPiece(new ChessPiece(ChessPiece.Category.PAWN, ChessPiece.Color.WHITE, whitePawn), 6, i);
 		}
 
 		addChessPiece(new ChessPiece(ChessPiece.Category.ROOK, ChessPiece.Color.BLACK, blackRook),0,0);
@@ -100,12 +100,75 @@ public class ChessBoardPanel extends JPanel {
 		SpotPanel spotPanel = spots[row][column];
 		spotPanel.getSpot().setChessPiece(chessPiece);
 		chessPiece.setPosition(spotPanel.getSpot());
-		BufferedImage myPicture = ImageIO.read(new File(chessPiece.getImage())) ;
+		BufferedImage myPicture = ImageIO.read(new File(chessPiece.getImage()));
 		JLabel picLabel = new JLabel(new ImageIcon(myPicture));
 		spotPanel.add(picLabel);
 
 		spotPanel.invalidate();
 		spotPanel.validate();
 		spotPanel.repaint();
+	}
+
+	@Override
+	public void mouseClicked(MouseEvent e) {
+	   SpotPanel object = (SpotPanel)this.getComponentAt(e.getPoint());
+	   System.out.printf("row %s ", object.getSpot().getRow());
+	   System.out.printf("column %s ", object.getSpot().getColumn());
+		if (object.getSpot().getChessPiece() != null) {
+			System.out.printf("ChessPiece : %s", object.getSpot().getChessPiece().getCategory());
+		}
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) {
+		SpotPanel object = (SpotPanel)this.getComponentAt(e.getPoint());
+		System.out.println("Mouse Pressed .....");
+		System.out.printf("row %s ", object.getSpot().getRow());
+		System.out.printf("column %s ", object.getSpot().getColumn());
+		if (object.getSpot().getChessPiece() != null) {
+			System.out.printf("ChessPiece : %s", object.getSpot().getChessPiece().getCategory());
+		}
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) {
+		SpotPanel object = (SpotPanel)this.getComponentAt(e.getPoint());
+		System.out.println("Mouse Released .....");
+		System.out.printf("row %s ", object.getSpot().getRow());
+		System.out.printf("column %s ", object.getSpot().getColumn());
+		if (object.getSpot().getChessPiece() != null) {
+			System.out.printf("ChessPiece : %s", object.getSpot().getChessPiece().getCategory());
+		}
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e) {
+		SpotPanel object = (SpotPanel)this.getComponentAt(e.getPoint());
+		System.out.println("Mouse Entered .....");
+		System.out.printf("row %s ", object.getSpot().getRow());
+		System.out.printf("column %s ", object.getSpot().getColumn());
+		if (object.getSpot().getChessPiece() != null) {
+			System.out.printf("ChessPiece : %s", object.getSpot().getChessPiece().getCategory());
+		}	}
+
+	@Override
+	public void mouseExited(MouseEvent e) {
+
+	}
+
+	@Override
+	public void mouseDragged(MouseEvent e) {
+		SpotPanel object = (SpotPanel)this.getComponentAt(e.getPoint());
+		System.out.println("Mouse Dragged .....");
+		System.out.printf("row %s ", object.getSpot().getRow());
+		System.out.printf("column %s ", object.getSpot().getColumn());
+		if (object.getSpot().getChessPiece() != null) {
+			System.out.printf("ChessPiece : %s", object.getSpot().getChessPiece().getCategory());
+		}
+	}
+
+	@Override
+	public void mouseMoved(MouseEvent e) {
+
 	}
 }

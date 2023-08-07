@@ -11,19 +11,17 @@ public class SpotPanel extends JPanel implements MouseListener, MouseMotionListe
 
 	public SpotPanel(Spot spot){
 		this.spot = spot;
-		this.addMouseListener(this);
-		this.addMouseMotionListener(this);
+		this.setSpot(spot);
 	}
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
-
-		System.out.println("row: " + spot.getRow());
+		/*System.out.println("row: " + spot.getRow());
 		System.out.println("column: " + spot.getColumn());
 		ChessPiece chessPiece = spot.getChessPiece();
 		if (chessPiece != null) {
 			System.out.println("Chess Piece: " + chessPiece.category);
-		}
+		}*/
 	}
 
 	@Override
@@ -87,5 +85,4 @@ public class SpotPanel extends JPanel implements MouseListener, MouseMotionListe
 	public void setSpot(Spot spot) {
 		this.spot = spot;
 	}
-
 }

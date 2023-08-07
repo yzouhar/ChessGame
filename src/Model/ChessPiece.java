@@ -3,7 +3,7 @@ package Model;
 public class ChessPiece {
 
 	Spot position;
-	Category category;
+	public Category category;
 	Color color;
 	String image;
 
