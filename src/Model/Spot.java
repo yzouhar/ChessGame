@@ -9,7 +9,7 @@ public class Spot {
 
 	public Spot(int x, int y){
 		this.row = x;
-	    this.column = y;
+		this.column = y;
 
 	}
 

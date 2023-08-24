@@ -8,6 +8,7 @@ import java.awt.event.MouseMotionListener;
 public class SpotPanel extends JPanel implements MouseListener, MouseMotionListener {
 
 	Spot spot;
+	ChessPiece chessPiece;
 
 	public SpotPanel(Spot spot){
 		this.spot = spot;
@@ -84,5 +85,13 @@ public class SpotPanel extends JPanel implements MouseListener, MouseMotionListe
 
 	public void setSpot(Spot spot) {
 		this.spot = spot;
+	}
+
+	public ChessPiece getChessPiece() {
+		return chessPiece;
+	}
+
+	public void setChessPiece(ChessPiece chessPiece) {
+		this.chessPiece = chessPiece;
 	}
 }
