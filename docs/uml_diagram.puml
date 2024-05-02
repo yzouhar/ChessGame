@@ -1,0 +1,36 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+box "Controller"  #LightYellow
+  boundary "MainController" as MainController
+end box
+
+
+box "View"  #LightBlue
+  boundary "ApplicationFrame" as ApplicationFrame
+  boundary "ChessBoardPanel" as ChessBoardPanel
+  boundary "SpotPanel" as ChessPiece
+end box
+
+box "Model"  #White
+  boundary "ChessPiece" as ChessPiece
+end box
+
+
+activate  MainController
+
+  MainController -> ApplicationFrame : placeChessPiece
+  activate ApplicationFrame
+    ApplicationFrame -> ChessBoardPanel : placeChessPiece
+    
+  deactivate ApplicationFrame
+
+deactivate MainController
+
+
+
+
+
+autonumber
+
+@enduml

@@ -1,12 +1,9 @@
 package View;
 
-import Model.Board;
-import Model.ChessPiece;
+
 import Model.Spot;
 
 import javax.swing.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.io.IOException;
 
 public class ApplicationFrame extends JFrame  {
@@ -22,12 +19,10 @@ public class ApplicationFrame extends JFrame  {
 	public void placeChessPiece(){
 		try {
 			chessBoard.placeChessPiece();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		} catch (InterruptedException e) {
+		} catch (IOException | InterruptedException e) {
 			throw new RuntimeException(e);
 		}
-	}
+    }
 
 
 }

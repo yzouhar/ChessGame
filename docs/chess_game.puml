@@ -1,0 +1,50 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+ Spot o-- ChessPiece : < placedIn
+ ChessPiece o-- Spot: < has
+ ChessPiece -- Category : < category
+ ChessPiece -- Color: < color
+
+ ChessBoardPanel -- Spot: < has
+ ChessBoardPanel -- ChessPiece: < has
+ ChessBoardPanel -- "has" Spot : spots[][]
+
+ ApplicationFrame -- "has" ChessBoardPanel : chessBoard
+
+ SpotPanel o-- Spot: < has
+ SpotPanel o-- ChessPiece: < has
+
+class SpotPanel extends JPanel
+class ApplicationFrame extends JFrame
+
+class Spot {
+ int row
+ int column
+ }
+
+
+class ChessBoardPanel extends JPanel implements MouseListener, MouseMotionListener
+
+
+
+class ChessPiece {
+   string image
+}
+
+enum Category {
+		PAWN,
+		KING,
+		QUEEN,
+		ROOK,
+		KNIGHT,
+		BISHOP
+}
+
+enum Color {
+		BLACK,
+		WHITE
+}
+
+
+@enduml

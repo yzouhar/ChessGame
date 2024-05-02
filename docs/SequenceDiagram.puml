@@ -1,0 +1,17 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+Actor User
+User -> Main:
+Main -> MainController:
+MainController -> ApplicationFrame : placeChessPiece
+ApplicationFrame -> placeChessPiece: chessBoard
+placeChessPiece -> chessBoardPlaceChessBoard: chessBoard.placeChessPiece()
+placeChessPiece -> ChessBoardPanel: placeChessPiece()
+placeChessPiece -> addChessPiece: addChessPiece()
+
+
+
+
+@enduml
