@@ -58,4 +58,29 @@ public class ChessPiece {
 	public void setImage(String image) {
 		this.image = image;
 	}
+
+	public boolean isBishop() {
+		return (category.equals(Category.BISHOP));
+	}
+
+	public boolean isRook() {
+		return (category.equals(Category.ROOK));
+	}
+
+	public boolean isKing() {
+		return (category.equals(Category.KING));
+	}
+
+	public boolean isQueen() {
+		return (category.equals(Category.QUEEN));
+	}
+
+	public boolean isPawn() {
+		return (category.equals(Category.PAWN));
+	}
+
+	public boolean isKnight() {
+		return (category.equals(Category.KNIGHT));
+	}
+
 }

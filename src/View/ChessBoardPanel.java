@@ -44,9 +44,8 @@ public class ChessBoardPanel extends JPanel implements MouseListener, MouseMotio
 	BufferedImage chessImage;
 	Graphics2D graphics2D;
 
-	public ChessBoardPanel(Spot spot) throws IOException {
+	public ChessBoardPanel() throws IOException {
 		this.setLayout(new GridLayout(8, 8));
-		this.spot = spot;
 		this.addMouseListener(this);
 		this.addMouseMotionListener(this);
 		createBoardTiles(this);
@@ -124,16 +123,14 @@ public class ChessBoardPanel extends JPanel implements MouseListener, MouseMotio
 	@Override
 	public void mousePressed(MouseEvent e) {
 
-		SpotPanel object = (SpotPanel) this.getComponentAt(e.getPoint());
+		SpotPanel spotPanel = (SpotPanel) this.getComponentAt(e.getPoint());
 
-		this.selectedPiece = object.getSpot().getChessPiece();
-		object.setChessPiece(null);
-		object.removeAll();
-		object.invalidate();
-		object.validate();
-		object.repaint();
-
-
+		this.selectedPiece = spotPanel.getSpot().getChessPiece();
+		spotPanel.setChessPiece(null);
+		spotPanel.removeAll();
+		spotPanel.invalidate();
+		spotPanel.validate();
+		spotPanel.repaint();
 
 		if (selectedPiece != null) {
 			try {
@@ -170,13 +167,31 @@ public class ChessBoardPanel extends JPanel implements MouseListener, MouseMotio
         for (Spot possibleMove : possibleMoves) {
             System.out.println("Row: " + possibleMove.getRow());
             System.out.println("Column: " + possibleMove.getColumn());
-            if (destinationSpotPanel.getSpot().getRow() == possibleMove.getRow() && destinationSpotPanel.getSpot().getColumn() == possibleMove.getColumn()) {
+
+				if (destinationSpotPanel.getSpot().getRow() == possibleMove.getRow() && destinationSpotPanel.getSpot().getColumn() == possibleMove.getColumn()) {
                 //isValidMove(selectedPiece.getPosition(), destinationSpotPanel.getSpot());
                 flag = true;
             }
         }
 
-		if (flag && isValidMove(selectedPiece.getPosition(), destinationSpotPanel.getSpot()) && isSpotAvailable(selectedPiece.getPosition().getChessPiece(), destinationSpotPanel.getSpot(), selectedPiece.getPosition())) {
+		if (flag && isValidMove(selectedPiece.getPosition(), destinationSpotPanel.getSpot()) && isSpotAvailable(selectedPiece.getPosition().getChessPiece(), destinationSpotPanel.getSpot(), selectedPiece.getPosition()) && !selectedPiece.isBishop() && !selectedPiece.isRook()) {
+			try {
+				destinationSpotPanel.removeAll();
+				selectedPiece.getPosition().setChessPiece(null);
+				addChessPiece(selectedPiece, row, column);
+			} catch (IOException ex) {
+				throw new RuntimeException(ex);
+			}
+		}
+		else if (flag && selectedPiece.isBishop() && isBishopMoveAvailable(selectedPiece ,selectedPiece.getPosition(), destinationSpotPanel.getSpot()) && isSpotAvailable(selectedPiece.getPosition().getChessPiece(), destinationSpotPanel.getSpot(), selectedPiece.getPosition())) {
+			try {
+				destinationSpotPanel.removeAll();
+				selectedPiece.getPosition().setChessPiece(null);
+				addChessPiece(selectedPiece, row, column);
+			} catch (IOException ex) {
+				throw new RuntimeException(ex);
+			}
+		} else if (flag && selectedPiece.isRook() && isRookMoveAvailable(selectedPiece, selectedPiece.getPosition(), destinationSpotPanel.getSpot()) && isSpotAvailable(selectedPiece.getPosition().getChessPiece(), destinationSpotPanel.getSpot(), selectedPiece.getPosition())) {
 			try {
 				destinationSpotPanel.removeAll();
 				selectedPiece.getPosition().setChessPiece(null);
@@ -239,7 +254,7 @@ public class ChessBoardPanel extends JPanel implements MouseListener, MouseMotio
 		int chessPieceRow = chessPiece.getPosition().getRow();
 		int chessPieceColumn = chessPiece.getPosition().getColumn();
 
-		if (chessPiece.getCategory().equals(ChessPiece.Category.PAWN) && chessPieceRow <= 7 && chessPieceRow >= 0 && chessPieceColumn >= 0 && chessPieceColumn <= 7) {
+		if (chessPiece.getCategory().equals(ChessPiece.Category.PAWN)) {
 			 possiblePawnMoves(chessPiece, destinationSpot, possibleSpotList, chessPieceRow, chessPieceColumn);
 		}
 
@@ -248,11 +263,15 @@ public class ChessBoardPanel extends JPanel implements MouseListener, MouseMotio
 		}
 
 		if (chessPiece.getCategory().equals(ChessPiece.Category.BISHOP)) {
-			return possibleBishopMoves(chessPiece, destinationSpot,chessPieceRow, chessPieceColumn);
+			return possibleBishopMoves(chessPieceRow, chessPieceColumn);
 		}
 
 		if (chessPiece.getCategory().equals(ChessPiece.Category.ROOK)) {
 			return possibleRookMoves(chessPiece, destinationSpot, chessPieceRow, chessPieceColumn);
+		}
+
+		if (chessPiece.getCategory().equals(ChessPiece.Category.KING)) {
+			possibleKingMoves(chessPiece, possibleSpotList,destinationSpot, chessPieceRow, chessPieceColumn);
 		}
 
 		return possibleSpotList;
@@ -299,19 +318,32 @@ public class ChessBoardPanel extends JPanel implements MouseListener, MouseMotio
 
 	}
 
-	public static  List<Spot> possibleBishopMoves(ChessPiece chessPiece, Spot destinationSpot, int chessPieceRow, int chessPieceColumn) {
+	public static  List<Spot> possibleBishopMoves(int chessPieceRow, int chessPieceColumn) {
 
 		List<Spot> possibleSpotList = new ArrayList<>();
-
 		for (int i = 0; i <= 7; i++) {
-			possibleSpotList.add(new Spot(chessPieceRow - i, chessPieceColumn - i));
-			possibleSpotList.add(new Spot(chessPieceRow + i, chessPieceColumn + i));
-			possibleSpotList.add(new Spot(chessPieceRow - i, chessPieceColumn + i));
-			possibleSpotList.add(new Spot(chessPieceRow + i, chessPieceColumn - i));
+
+			if (isWhithinRange(chessPieceRow - i, chessPieceColumn - i))  {
+				possibleSpotList.add(new Spot(chessPieceRow - i, chessPieceColumn - i));
+			}
+			if (isWhithinRange(chessPieceRow + i, chessPieceColumn + i)) {
+				possibleSpotList.add(new Spot(chessPieceRow + i, chessPieceColumn + i));
+			}
+			if (isWhithinRange(chessPieceRow - i, chessPieceColumn + i)) {
+				possibleSpotList.add(new Spot(chessPieceRow - i, chessPieceColumn + i));
+			}
+			if (isWhithinRange(chessPieceRow + i, chessPieceColumn - i)) {
+				possibleSpotList.add(new Spot(chessPieceRow + i, chessPieceColumn - i));
+			}
 		}
 
 		return possibleSpotList;
 	}
+
+	static boolean isWhithinRange(int row, int column){
+		return row <=7 && row >=0 && column <=7 && column >=0;
+	}
+
 	public static List<Spot> possibleRookMoves(ChessPiece chessPiece, Spot destinationSpot, int chessPieceRow, int chessPieceColumn) {
 		List<Spot> possibleSpotList = new ArrayList<>();
 
@@ -324,9 +356,107 @@ public class ChessBoardPanel extends JPanel implements MouseListener, MouseMotio
 		}
 		return possibleSpotList;
 	}
+
+	private static void possibleKingMoves(ChessPiece chessPiece,  List<Spot> possibleSpotList,Spot destinationSpot, int chessPieceRow, int chessPieceColumn) {
+		possibleSpotList.add(new Spot(chessPieceRow + 1, chessPieceColumn));
+		possibleSpotList.add(new Spot(chessPieceRow, chessPieceColumn + 1));
+		possibleSpotList.add(new Spot(chessPieceRow - 1, chessPieceColumn));
+		possibleSpotList.add(new Spot(chessPieceRow, chessPieceColumn - 1));
+		possibleSpotList.add(new Spot(chessPieceRow - 1, chessPieceColumn - 1));
+		possibleSpotList.add(new Spot(chessPieceRow + 1, chessPieceColumn - 1));
+		possibleSpotList.add(new Spot(chessPieceRow - 1, chessPieceColumn + 1));
+		possibleSpotList.add(new Spot(chessPieceRow + 1, chessPieceColumn + 1));
+
+	}
  	public boolean isSpotAvailable(ChessPiece chessPiece, Spot toSpot, Spot fromSpot) {
+		return toSpot.getChessPiece() == null || !chessPiece.getColor().equals(toSpot.getChessPiece().getColor());
+	}
 
-		return toSpot.getChessPiece() == null || chessPiece.getColor() != toSpot.getChessPiece().getColor();
-    }
+	public boolean isBishopMoveAvailable(ChessPiece chessPiece,Spot fromSpot, Spot toSpot)  {
 
+		int startXCoordinate = fromSpot.getRow();
+		int startYCoordinate = fromSpot.getColumn();
+
+		int endXCoordinate = toSpot.getRow();
+		int endYCoordinate = toSpot.getColumn();
+
+		while (startXCoordinate > endXCoordinate && startYCoordinate > endYCoordinate ) {
+			SpotPanel currentSpot = spots[--startXCoordinate][--startYCoordinate];
+			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot) ) {
+					return false;
+			}
+		}
+
+		while (startXCoordinate < endXCoordinate && startYCoordinate < endYCoordinate) {
+			SpotPanel currentSpot = spots[++startXCoordinate][++startYCoordinate];
+			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot) ) {
+				return false;
+			}
+		}
+		while (startXCoordinate > endXCoordinate && startYCoordinate < endYCoordinate) {
+			SpotPanel currentSpot = spots[--startXCoordinate][++startYCoordinate];
+			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot) ) {
+				return false;
+			}
+		}
+
+		while (startXCoordinate < endXCoordinate && startYCoordinate > endYCoordinate) {
+			SpotPanel currentSpot = spots[++startXCoordinate][--startYCoordinate];
+			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot)) {
+				return false;
+			}
+		}
+
+		if (toSpot.getChessPiece() != null && !chessPiece.getCategory().equals(ChessPiece.Category.KING)) {
+			if (!toSpot.getChessPiece().getColor().equals(fromSpot.getChessPiece().getColor())) {
+				return true;
+			}
+		}
+		return true;
+	}
+
+	public boolean isRookMoveAvailable(ChessPiece chessPiece, Spot fromSpot, Spot toSpot) {
+		int startXCoordinate = fromSpot.getRow();
+		int startYCoordinate = fromSpot.getColumn();
+
+		int endXCoordinate = toSpot.getRow();
+		int endYCoordinate = toSpot.getColumn();
+
+		while (startXCoordinate > endXCoordinate) {
+			SpotPanel currentSpot = spots[--startXCoordinate][startYCoordinate];
+			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot)) {
+				return false;
+			}
+		}
+
+		while (startXCoordinate < endXCoordinate) {
+			SpotPanel currentSpot = spots[++startXCoordinate][startYCoordinate];
+			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot)) {
+				return false;
+			}
+		}
+
+
+		while (startYCoordinate < endYCoordinate) {
+			SpotPanel currentSpot = spots[startXCoordinate][++startYCoordinate];
+			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot)) {
+				return false;
+			}
+		}
+
+		while (startYCoordinate > endYCoordinate) {
+			SpotPanel currentSpot = spots[startXCoordinate][--startYCoordinate];
+			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot)) {
+				return false;
+			}
+		}
+
+		if (toSpot.getChessPiece() != null && !chessPiece.getCategory().equals(ChessPiece.Category.KING)) {
+			if (!toSpot.getChessPiece().getColor().equals(fromSpot.getChessPiece().getColor())) {
+				return true;
+			}
+		}
+
+		return true;
+	}
 }

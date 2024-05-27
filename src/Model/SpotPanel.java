@@ -20,4 +20,9 @@ public class SpotPanel extends JPanel {
 	public void setChessPiece(ChessPiece chessPiece) {
 		this.chessPiece = chessPiece;
 	}
+
+	public boolean isOccupied(){
+		return (spot != null && !spot.isEmpty());
+	}
+
 }

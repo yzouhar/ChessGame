@@ -7,7 +7,7 @@ import javax.swing.*;
 import java.io.IOException;
 
 public class ApplicationFrame extends JFrame  {
-	ChessBoardPanel chessBoard = new ChessBoardPanel(new Spot());
+	ChessBoardPanel chessBoard = new ChessBoardPanel();
 
 	public ApplicationFrame() throws IOException {
 		this.add(chessBoard);

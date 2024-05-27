@@ -40,4 +40,13 @@ public class Spot {
 	public void setChessPiece(ChessPiece chessPiece) {
 		this.chessPiece = chessPiece;
 	}
+
+	public boolean isEmpty(){
+		return (chessPiece == null);
+	}
+
+	public boolean equalsSpot(Object obj) {
+		Spot spot = (Spot) obj;
+		return (spot.getRow() == this.getRow() && spot.getColumn() == this.getColumn());
+	}
 }
