@@ -1,10 +1,11 @@
 import View.ApplicationFrame;
-
-import java.io.IOException;
+import javax.swing.SwingUtilities;
 
 public class MainController {
-	public static void main(String[] args) throws IOException {
-		ApplicationFrame appFrame = new ApplicationFrame();
-		appFrame.placeChessPiece();
-	}
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            try { ApplicationFrame appFrame = new ApplicationFrame(); appFrame.placeChessPiece(); }
+            catch (java.io.IOException e) { throw new RuntimeException(e); }
+        });
+    }
 }
