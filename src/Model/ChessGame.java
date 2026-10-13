@@ -1,6 +1,8 @@
 package Model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 
@@ -40,6 +42,13 @@ public final class ChessGame {
     public boolean isGameOver(){return status!=Status.ACTIVE&&status!=Status.CHECK;}
     public boolean isInCheck(ChessPiece.Color side){int kr=-1,kc=-1;for(int r=0;r<8;r++)for(int c=0;c<8;c++){ChessPiece p=board[r][c];if(p!=null&&p.isKing()&&p.getColor()==side){kr=r;kc=c;}}return kr<0||attacked(kr,kc,opposite(side));}
     public boolean isLegalMove(int fr,int fc,int tr,int tc){return legal(fr,fc,tr,tc);}
+    public List<Spot> getLegalMoves(int row,int col){
+        List<Spot> moves=new ArrayList<>();
+        if(!inside(row,col)||board[row][col]==null||board[row][col].getColor()!=turn)return moves;
+        for(int targetRow=0;targetRow<8;targetRow++)for(int targetCol=0;targetCol<8;targetCol++)
+            if(legal(row,col,targetRow,targetCol))moves.add(new Spot(targetRow,targetCol));
+        return moves;
+    }
     public boolean move(int fr,int fc,int tr,int tc){return move(fr,fc,tr,tc,ChessPiece.Category.QUEEN);}
     public boolean move(int fr,int fc,int tr,int tc,ChessPiece.Category promotion){
         if(isGameOver()||!legal(fr,fc,tr,tc))return false;
