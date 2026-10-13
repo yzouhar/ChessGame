@@ -1,509 +1,63 @@
 package View;
 
+import Model.ChessGame;
+import Model.ChessClock;
 import Model.ChessPiece;
 import Model.Spot;
 import Model.SpotPanel;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
+/** Swing presentation for the chess rules engine. */
+public class ChessBoardPanel extends JPanel {
+    private final ChessGame game = new ChessGame();
+    private final SpotPanel[][] squares = new SpotPanel[8][8];
+    private final MouseListener[][] squareListeners = new MouseListener[8][8];
+    private final JLabel whiteClock = new JLabel(), blackClock = new JLabel(), message = new JLabel("White to move");
+    private final JButton claimDraw = new JButton("Claim draw");
+    private final Timer timer;
+    private ChessClock clock;
+    private long lastTick;
+    private boolean timedOut;
+    private ChessPiece.Color timeoutWinner;
+    private int selectedRow=-1, selectedCol=-1;
 
-public class ChessBoardPanel extends JPanel implements MouseListener, MouseMotionListener {
-	Spot spot;
-
-	static String whitePawn = "resources/images/whitePawn.png";
-	static String blackPawn = "resources/images/blackPawn.png";
-
-	static String whiteRook = "resources/images/whiteRook.png";
-	static String blackRook = "resources/images/blackRook.png";
-
-	static String whiteKnight = "resources/images/whiteKnight.png";
-	static String blackKnight = "resources/images/blackKnight.png";
-
-	static String whiteBishop = "resources/images/whiteBishop.png";
-	static String blackBishop = "resources/images/blackBishop.png";
-
-	static String whiteKing = "resources/images/whiteKing.png";
-	static String blackKing = "resources/images/blackKing.png";
-
-	static String whiteQueen = "resources/images/whiteQueen.png";
-	static String blackQueen = "resources/images/blackQueen.png";
-
-	static SpotPanel[][] spots = new SpotPanel[8][8];
-
-	ChessPiece selectedPiece;
-	BufferedImage chessImage;
-	Graphics2D graphics2D;
-
-	public ChessBoardPanel() throws IOException {
-		this.setLayout(new GridLayout(8, 8));
-		this.addMouseListener(this);
-		this.addMouseMotionListener(this);
-		createBoardTiles(this);
-
-	}
-
-	public void placeChessPiece() throws IOException, InterruptedException {
-		for (int i = 0; i < 8; i++) {
-			addChessPiece(new ChessPiece(ChessPiece.Category.PAWN, ChessPiece.Color.BLACK, blackPawn), 1, i);
-		}
-
-		for (int i = 0; i < 8; i++) {
-			addChessPiece(new ChessPiece(ChessPiece.Category.PAWN, ChessPiece.Color.WHITE, whitePawn), 6, i);
-		}
-
-		addChessPiece(new ChessPiece(ChessPiece.Category.ROOK, ChessPiece.Color.BLACK, blackRook), 0, 0);
-		addChessPiece(new ChessPiece(ChessPiece.Category.ROOK, ChessPiece.Color.BLACK, blackRook), 0, 7);
-
-		addChessPiece(new ChessPiece(ChessPiece.Category.KNIGHT, ChessPiece.Color.BLACK, blackKnight), 0, 1);
-		addChessPiece(new ChessPiece(ChessPiece.Category.KNIGHT, ChessPiece.Color.BLACK, blackKnight), 0, 6);
-
-		addChessPiece(new ChessPiece(ChessPiece.Category.BISHOP, ChessPiece.Color.BLACK, blackBishop), 0, 2);
-		addChessPiece(new ChessPiece(ChessPiece.Category.BISHOP, ChessPiece.Color.BLACK, blackBishop), 0, 5);
-
-		addChessPiece(new ChessPiece(ChessPiece.Category.QUEEN, ChessPiece.Color.BLACK, blackQueen), 0, 3);
-		addChessPiece(new ChessPiece(ChessPiece.Category.QUEEN, ChessPiece.Color.WHITE, whiteQueen), 7, 3);
-
-		addChessPiece(new ChessPiece(ChessPiece.Category.KING, ChessPiece.Color.BLACK, blackKing), 0, 4);
-		addChessPiece(new ChessPiece(ChessPiece.Category.KING, ChessPiece.Color.WHITE, whiteKing), 7, 4);
-
-		addChessPiece(new ChessPiece(ChessPiece.Category.ROOK, ChessPiece.Color.WHITE, whiteRook), 7, 0);
-		addChessPiece(new ChessPiece(ChessPiece.Category.ROOK, ChessPiece.Color.WHITE, whiteRook), 7, 7);
-
-		addChessPiece(new ChessPiece(ChessPiece.Category.KNIGHT, ChessPiece.Color.WHITE, whiteKnight), 7, 1);
-		addChessPiece(new ChessPiece(ChessPiece.Category.KNIGHT, ChessPiece.Color.WHITE, whiteKnight), 7, 6);
-
-		addChessPiece(new ChessPiece(ChessPiece.Category.BISHOP, ChessPiece.Color.WHITE, whiteBishop), 7, 2);
-		addChessPiece(new ChessPiece(ChessPiece.Category.BISHOP, ChessPiece.Color.WHITE, whiteBishop), 7, 5);
-	}
-
-	public static void createBoardTiles(JPanel mainPanel) throws IOException {
-		for (int row = 0; row < 8; row++) {
-			for (int col = 0; col < 8; col++) {
-				SpotPanel panel = new SpotPanel(new Spot(row, col));
-				spots[row][col] = panel;
-				panel.setPreferredSize(new Dimension(300, 300));
-				if ((row + col) % 2 == 0) {
-					panel.setBackground(Color.WHITE);
-				} else {
-					panel.setBackground(Color.decode("#769656"));
-				}
-				mainPanel.add(panel);
-			}
-		}
-	}
-
-	public static void addChessPiece(ChessPiece chessPiece, int row, int column) throws IOException {
-		SpotPanel spotPanel = spots[row][column];
-		spotPanel.getSpot().setChessPiece(chessPiece);
-		chessPiece.setPosition(spotPanel.getSpot());
-		BufferedImage myPicture = ImageIO.read(new File(chessPiece.getImage()));
-		JLabel picLabel = new JLabel(new ImageIcon(myPicture));
-		spotPanel.add(picLabel);
-		spotPanel.invalidate();
-		spotPanel.validate();
-		spotPanel.repaint();
-	}
-
-
-	@Override
-	public void mouseClicked(MouseEvent e) {
-
-	}
-
-	@Override
-	public void mousePressed(MouseEvent e) {
-
-		SpotPanel spotPanel = (SpotPanel) this.getComponentAt(e.getPoint());
-
-		this.selectedPiece = spotPanel.getSpot().getChessPiece();
-		spotPanel.setChessPiece(null);
-		spotPanel.removeAll();
-		spotPanel.invalidate();
-		spotPanel.validate();
-		spotPanel.repaint();
-
-		if (selectedPiece != null) {
-			try {
-
-				chessImage = ImageIO.read(new File(selectedPiece.getImage()));
-				int scaledWidth = (int) (chessImage.getWidth() * 0.6);
-				int scaledHeight = (int) (chessImage.getHeight() * 0.6);
-				Image newImage = chessImage.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_SMOOTH);
-				graphics2D = (Graphics2D) getGraphics();
-				//changes opacity
-				graphics2D.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
-				int x = e.getX() - scaledWidth / 2;
-				int y = e.getY() - scaledHeight / 2;
-				graphics2D.drawImage(newImage, x, y, this);
-
-				graphics2D.dispose();
-			} catch (IOException ex) {
-				throw new RuntimeException(ex);
-			}
-		}
-	}
-
-	@Override
-	public void mouseReleased(MouseEvent e) {
-
-		SpotPanel destinationSpotPanel = (SpotPanel) this.getComponentAt(e.getPoint());
-
-		int row = destinationSpotPanel.getSpot().getRow();
-		int column = destinationSpotPanel.getSpot().getColumn();
-		boolean flag = false;
-
-		List<Spot> possibleMoves = getCandidateMoves(selectedPiece, destinationSpotPanel.getSpot());
-
-        for (Spot possibleMove : possibleMoves) {
-            System.out.println("Row: " + possibleMove.getRow());
-            System.out.println("Column: " + possibleMove.getColumn());
-
-				if (destinationSpotPanel.getSpot().getRow() == possibleMove.getRow() && destinationSpotPanel.getSpot().getColumn() == possibleMove.getColumn()) {
-                //isValidMove(selectedPiece.getPosition(), destinationSpotPanel.getSpot());
-                flag = true;
-            }
+    public ChessBoardPanel() throws IOException {
+        super(new BorderLayout(8,8));
+        int minutes=10, inc=0;
+        if(!GraphicsEnvironment.isHeadless()){
+            try {String value=JOptionPane.showInputDialog(null,"Starting time in minutes (increment: 0)","Chess clock",JOptionPane.QUESTION_MESSAGE);if(value!=null&&!value.trim().isEmpty())minutes=Math.max(1,Integer.parseInt(value.trim()));}catch(NumberFormatException ignored){}
+            try {String value=JOptionPane.showInputDialog(null,"Increment per move in seconds", "0");if(value!=null&&!value.trim().isEmpty())inc=Math.max(0,Integer.parseInt(value.trim()));}catch(NumberFormatException ignored){}
         }
-
-		if (flag && isValidMove(selectedPiece.getPosition(), destinationSpotPanel.getSpot()) && isSpotAvailable(selectedPiece.getPosition().getChessPiece(), destinationSpotPanel.getSpot(), selectedPiece.getPosition()) && !selectedPiece.isBishop() && !selectedPiece.isRook() && !selectedPiece.isQueen()) {
-			try {
-				destinationSpotPanel.removeAll();
-				selectedPiece.getPosition().setChessPiece(null);
-				addChessPiece(selectedPiece, row, column);
-			} catch (IOException ex) {
-				throw new RuntimeException(ex);
-			}
-		}
-		else if (flag && selectedPiece.isBishop() && isBishopMoveAvailable(selectedPiece ,selectedPiece.getPosition(), destinationSpotPanel.getSpot()) && isSpotAvailable(selectedPiece.getPosition().getChessPiece(), destinationSpotPanel.getSpot(), selectedPiece.getPosition())) {
-			try {
-				destinationSpotPanel.removeAll();
-				selectedPiece.getPosition().setChessPiece(null);
-				addChessPiece(selectedPiece, row, column);
-			} catch (IOException ex) {
-				throw new RuntimeException(ex);
-			}
-		} else if (flag && selectedPiece.isRook() && isRookMoveAvailable(selectedPiece, selectedPiece.getPosition(), destinationSpotPanel.getSpot()) && isSpotAvailable(selectedPiece.getPosition().getChessPiece(), destinationSpotPanel.getSpot(), selectedPiece.getPosition())) {
-			try {
-				destinationSpotPanel.removeAll();
-				selectedPiece.getPosition().setChessPiece(null);
-				addChessPiece(selectedPiece, row, column);
-			} catch (IOException ex) {
-				throw new RuntimeException(ex);
-			}
-		} else if (flag && selectedPiece.isQueen() && isQueenMoveAvailable(selectedPiece, selectedPiece.getPosition(), destinationSpotPanel.getSpot()) && isSpotAvailable(selectedPiece.getPosition().getChessPiece(), destinationSpotPanel.getSpot(), selectedPiece.getPosition())) {
-			try {
-				destinationSpotPanel.removeAll();
-				selectedPiece.getPosition().setChessPiece(null);
-				addChessPiece(selectedPiece, row, column);
-			} catch (IOException ex) {
-				throw new RuntimeException(ex);
-			}
-		} else {
-			try {
-				addChessPiece(selectedPiece, selectedPiece.getPosition().getRow(), selectedPiece.getPosition().getColumn());
-			} catch (IOException ex) {
-				throw new RuntimeException(ex);
-			}
-		}
-		System.out.println("_____________________________________________________________");
-	}
-
-	@Override
-	public void mouseEntered(MouseEvent e) {
-
-	}
-
-	@Override
-	public void mouseExited(MouseEvent e) {
-
-	}
-
-	@Override
-	public void mouseDragged(MouseEvent e) {
-		/* if (selectedPiece != null) {
-			try {
-				chessImage = ImageIO.read(new File(selectedPiece.getImage()));
-				int scaledWidth = (int) (chessImage.getWidth() * 1.0);
-				int scaledHeight = (int) (chessImage.getHeight() * 1.0);
-				Image newImage = chessImage.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_SMOOTH);
-				graphics2D = (Graphics2D) getGraphics();
-				//changes ]\opacity
-				graphics2D.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
-				int x = e.getX() - scaledWidth / 2;
-				int y = e.getY() - scaledHeight / 2;
-				graphics2D.drawImage(newImage, x, y, this);
-
-				graphics2D.dispose();
-			} catch (IOException ex) {
-				throw new RuntimeException(ex);
-			}
-		} */
-	}
-
-	@Override
-	public void mouseMoved(MouseEvent e) { }
-
-	public boolean isValidMove(Spot fromSpot, Spot toSpot) {
-		return true;
-	}
-
-	public List<Spot> getCandidateMoves(ChessPiece chessPiece, Spot destinationSpot) {
-		List<Spot> possibleSpotList = new ArrayList<>();
-
-		int chessPieceRow = chessPiece.getPosition().getRow();
-		int chessPieceColumn = chessPiece.getPosition().getColumn();
-
-		if (chessPiece.isPawn()) {
-			 possiblePawnMoves(chessPiece, destinationSpot, possibleSpotList, chessPieceRow, chessPieceColumn);
-		}
-
-		if (chessPiece.isKnight()) {
-			possibleKnightMoves(chessPiece, destinationSpot, possibleSpotList, chessPieceRow, chessPieceColumn);
-		}
-
-		if (chessPiece.isBishop()) {
-			return possibleBishopMoves(chessPieceRow, chessPieceColumn);
-		}
-
-		if (chessPiece.isRook()) {
-			return possibleRookMoves(chessPiece, destinationSpot, chessPieceRow, chessPieceColumn);
-		}
-
-		if (chessPiece.isKing()) {
-			possibleKingMoves(chessPiece, possibleSpotList,destinationSpot, chessPieceRow, chessPieceColumn);
-		}
-
-		if (chessPiece.isQueen()) {
-			return possibleQueenMoves(chessPieceRow, chessPieceColumn);
-		}
-
-		return possibleSpotList;
-	}
-
-
-	private void possibleKnightMoves(ChessPiece chessPiece, Spot destinationSpot, List<Spot> possibleSpotList, int chessPieceRow, int chessPieceColumn) {
-			//if (destinationSpot == null || destinationSpot.getChessPiece().getColor().equals(ChessPiece.Color.BLACK)) {
-				possibleSpotList.add(new Spot(chessPieceRow - 1, chessPieceColumn + 2));
-				possibleSpotList.add(new Spot(chessPieceRow - 1, chessPieceColumn - 2));
-
-				possibleSpotList.add(new Spot(chessPieceRow - 2, chessPieceColumn + 1));
-				possibleSpotList.add(new Spot(chessPieceRow - 2, chessPieceColumn - 1));
-
-				possibleSpotList.add(new Spot(chessPieceRow + 1, chessPieceColumn + 2));
-				possibleSpotList.add(new Spot(chessPieceRow + 2, chessPieceColumn + 1));
-
-				possibleSpotList.add(new Spot(chessPieceRow + 1, chessPieceColumn - 2));
-				possibleSpotList.add(new Spot(chessPieceRow + 2, chessPieceColumn - 1));
-
-
-			//}
-	}
-
-	private static void possiblePawnMoves(ChessPiece chessPiece, Spot destinationSpot, List<Spot> possibleSpotList, int chessPieceRow, int chessPieceColumn) {
-		if (chessPiece.getColor().equals(ChessPiece.Color.WHITE) && isWithinRange(destinationSpot.getRow(), destinationSpot.getColumn())) {
-			if (chessPiece.getPosition().getRow() == 6) {
-				possibleSpotList.add(new Spot(chessPieceRow - 1, chessPieceColumn));
-				possibleSpotList.add(new Spot(chessPieceRow - 2, chessPieceColumn));
-			} else if (chessPiece.getPosition().getRow() != 6) {
-				possibleSpotList.add(new Spot(chessPieceRow - 1, chessPieceColumn));
-			}
-			//if (chessPiece.getPosition().getChessPiece().getColor() == ChessPiece.Color.BLACK )
-
-		}
-		if (chessPiece.getColor().equals(ChessPiece.Color.BLACK) && isWithinRange(destinationSpot.getRow(), destinationSpot.getColumn())) {
-			if (chessPiece.getPosition().getRow() == 1) {
-				possibleSpotList.add(new Spot(chessPieceRow + 1, chessPieceColumn));
-				possibleSpotList.add(new Spot(chessPieceRow + 2, chessPieceColumn));
-			}  else if (chessPiece.getPosition().getRow() != 1) {
-				possibleSpotList.add(new Spot(chessPieceRow + 1, chessPieceColumn));
-			}
-		}
-
-	}
-
-	public static  List<Spot> possibleBishopMoves(int chessPieceRow, int chessPieceColumn) {
-
-		List<Spot> possibleSpotList = new ArrayList<>();
-		for (int i = 0; i <= 7; i++) {
-
-			if (isWithinRange(chessPieceRow - i, chessPieceColumn - i))  {
-				possibleSpotList.add(new Spot(chessPieceRow - i, chessPieceColumn - i));
-			}
-			if (isWithinRange(chessPieceRow + i, chessPieceColumn + i)) {
-				possibleSpotList.add(new Spot(chessPieceRow + i, chessPieceColumn + i));
-			}
-			if (isWithinRange(chessPieceRow - i, chessPieceColumn + i)) {
-				possibleSpotList.add(new Spot(chessPieceRow - i, chessPieceColumn + i));
-			}
-			if (isWithinRange(chessPieceRow + i, chessPieceColumn - i)) {
-				possibleSpotList.add(new Spot(chessPieceRow + i, chessPieceColumn - i));
-			}
-		}
-
-		return possibleSpotList;
-	}
-
-	static boolean isWithinRange(int row, int column){
-		return row <=7 && row >=0 && column <=7 && column >=0;
-	}
-
-	public static List<Spot> possibleRookMoves(ChessPiece chessPiece, Spot destinationSpot, int chessPieceRow, int chessPieceColumn) {
-		List<Spot> possibleSpotList = new ArrayList<>();
-
-		for (int i = 0; i <= 7 ; i++) {
-			possibleSpotList.add(new Spot(chessPieceRow - i, chessPieceColumn));
-			possibleSpotList.add(new Spot(chessPieceRow, chessPieceColumn - i));
-			possibleSpotList.add(new Spot(chessPieceRow + i, chessPieceColumn));
-			possibleSpotList.add(new Spot(chessPieceRow, chessPieceColumn + i));
-
-		}
-		return possibleSpotList;
-	}
-
-	private static void possibleKingMoves(ChessPiece chessPiece,  List<Spot> possibleSpotList,Spot destinationSpot, int chessPieceRow, int chessPieceColumn) {
-		possibleSpotList.add(new Spot(chessPieceRow + 1, chessPieceColumn));
-		possibleSpotList.add(new Spot(chessPieceRow, chessPieceColumn + 1));
-		possibleSpotList.add(new Spot(chessPieceRow - 1, chessPieceColumn));
-		possibleSpotList.add(new Spot(chessPieceRow, chessPieceColumn - 1));
-		possibleSpotList.add(new Spot(chessPieceRow - 1, chessPieceColumn - 1));
-		possibleSpotList.add(new Spot(chessPieceRow + 1, chessPieceColumn - 1));
-		possibleSpotList.add(new Spot(chessPieceRow - 1, chessPieceColumn + 1));
-		possibleSpotList.add(new Spot(chessPieceRow + 1, chessPieceColumn + 1));
-
-	}
-
-	public static List<Spot> possibleQueenMoves(int chessPieceRow, int chessPieceColumn) {
-		List<Spot> possibleSpotList = new ArrayList<>();
-		for (int i = 0; i <= 7; i++) {
-
-			if (isWithinRange(chessPieceRow - i, chessPieceColumn - i))  {
-				possibleSpotList.add(new Spot(chessPieceRow - i, chessPieceColumn - i));
-			}
-			if (isWithinRange(chessPieceRow + i, chessPieceColumn + i)) {
-				possibleSpotList.add(new Spot(chessPieceRow + i, chessPieceColumn + i));
-			}
-			if (isWithinRange(chessPieceRow - i, chessPieceColumn + i)) {
-				possibleSpotList.add(new Spot(chessPieceRow - i, chessPieceColumn + i));
-			}
-			if (isWithinRange(chessPieceRow + i, chessPieceColumn - i)) {
-				possibleSpotList.add(new Spot(chessPieceRow + i, chessPieceColumn - i));
-			}
-
-			possibleSpotList.add(new Spot(chessPieceRow - i, chessPieceColumn));
-			possibleSpotList.add(new Spot(chessPieceRow, chessPieceColumn - i));
-			possibleSpotList.add(new Spot(chessPieceRow + i, chessPieceColumn));
-			possibleSpotList.add(new Spot(chessPieceRow, chessPieceColumn + i));
-		}
-
-		return possibleSpotList;
-	}
-
- 	public boolean isSpotAvailable(ChessPiece chessPiece, Spot toSpot, Spot fromSpot) {
-		return toSpot.getChessPiece() == null || !chessPiece.getColor().equals(toSpot.getChessPiece().getColor());
-	}
-
-	public boolean isBishopMoveAvailable(ChessPiece chessPiece,Spot fromSpot, Spot toSpot)  {
-
-		int startXCoordinate = fromSpot.getRow();
-		int startYCoordinate = fromSpot.getColumn();
-
-		int endXCoordinate = toSpot.getRow();
-		int endYCoordinate = toSpot.getColumn();
-
-		while (startXCoordinate > endXCoordinate && startYCoordinate > endYCoordinate ) {
-			SpotPanel currentSpot = spots[--startXCoordinate][--startYCoordinate];
-			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot) ) {
-					return false;
-			}
-		}
-
-		while (startXCoordinate < endXCoordinate && startYCoordinate < endYCoordinate) {
-			SpotPanel currentSpot = spots[++startXCoordinate][++startYCoordinate];
-			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot) ) {
-				return false;
-			}
-		}
-		while (startXCoordinate > endXCoordinate && startYCoordinate < endYCoordinate) {
-			SpotPanel currentSpot = spots[--startXCoordinate][++startYCoordinate];
-			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot) ) {
-				return false;
-			}
-		}
-
-		while (startXCoordinate < endXCoordinate && startYCoordinate > endYCoordinate) {
-			SpotPanel currentSpot = spots[++startXCoordinate][--startYCoordinate];
-			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot)) {
-				return false;
-			}
-		}
-
-		if (toSpot.getChessPiece() != null && !chessPiece.getCategory().equals(ChessPiece.Category.KING)) {
-			if (!toSpot.getChessPiece().getColor().equals(fromSpot.getChessPiece().getColor())) {
-				return true;
-			}
-		}
-		return true;
-	}
-
-	public boolean isRookMoveAvailable(ChessPiece chessPiece, Spot fromSpot, Spot toSpot) {
-		int startXCoordinate = fromSpot.getRow();
-		int startYCoordinate = fromSpot.getColumn();
-
-		int endXCoordinate = toSpot.getRow();
-		int endYCoordinate = toSpot.getColumn();
-
-		while (startXCoordinate > endXCoordinate) {
-			SpotPanel currentSpot = spots[--startXCoordinate][startYCoordinate];
-			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot)) {
-				return false;
-			}
-		}
-
-		while (startXCoordinate < endXCoordinate) {
-			SpotPanel currentSpot = spots[++startXCoordinate][startYCoordinate];
-			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot)) {
-				return false;
-			}
-		}
-
-
-		while (startYCoordinate < endYCoordinate) {
-			SpotPanel currentSpot = spots[startXCoordinate][++startYCoordinate];
-			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot)) {
-				return false;
-			}
-		}
-
-		while (startYCoordinate > endYCoordinate) {
-			SpotPanel currentSpot = spots[startXCoordinate][--startYCoordinate];
-			if (currentSpot.isOccupied() && !currentSpot.getSpot().equals(toSpot)) {
-				return false;
-			}
-		}
-
-		if (toSpot.getChessPiece() != null && !chessPiece.getCategory().equals(ChessPiece.Category.KING)) {
-			if (!toSpot.getChessPiece().getColor().equals(fromSpot.getChessPiece().getColor())) {
-				return true;
-			}
-		}
-
-		return true;
-	}
-
-	public boolean isQueenMoveAvailable(ChessPiece chessPiece, Spot fromSpot, Spot toSpot) {
-		if (toSpot.getChessPiece() != null && chessPiece.isQueen()) {
-			isBishopMoveAvailable(chessPiece.getPosition().getChessPiece(), fromSpot, toSpot);
-			isRookMoveAvailable(chessPiece.getPosition().getChessPiece(), fromSpot, toSpot);
-		}
-		return true;
-	}
+        clock=new ChessClock(minutes*60_000L,inc*1000L);timer=new Timer(100,e->tick());
+        JPanel clocks=new JPanel(new GridLayout(1,2,12,0));whiteClock.setHorizontalAlignment(SwingConstants.CENTER);blackClock.setHorizontalAlignment(SwingConstants.CENTER);whiteClock.setFont(new Font(Font.SANS_SERIF,Font.BOLD,22));blackClock.setFont(new Font(Font.SANS_SERIF,Font.BOLD,22));clocks.add(whiteClock);clocks.add(blackClock);add(clocks,BorderLayout.NORTH);
+        JPanel board=new JPanel(new GridLayout(8,8));board.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY,2));
+        for(int r=0;r<8;r++)for(int c=0;c<8;c++){final int row=r,col=c;SpotPanel sq=new SpotPanel(new Spot(r,c));sq.setLayout(new GridBagLayout());sq.setOpaque(true);sq.setBackground(((r+c)&1)==0?new Color(238,238,210):new Color(118,150,86));sq.setPreferredSize(new Dimension(86,86));sq.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));MouseListener listener=new MouseAdapter(){public void mouseClicked(MouseEvent e){onSquare(row,col);}};sq.addMouseListener(listener);squareListeners[r][c]=listener;squares[r][c]=sq;board.add(sq);}
+        add(board,BorderLayout.CENTER);message.setHorizontalAlignment(SwingConstants.CENTER);message.setFont(new Font(Font.SANS_SERIF,Font.BOLD,16));JPanel footer=new JPanel(new BorderLayout());footer.add(message,BorderLayout.CENTER);claimDraw.setEnabled(false);claimDraw.addActionListener(e->{if(game.claimThreefoldDraw()||game.claimFiftyMoveDraw()){timer.stop();refresh();}});footer.add(claimDraw,BorderLayout.EAST);add(footer,BorderLayout.SOUTH);
+        refresh();lastTick=System.nanoTime();timer.start();
+    }
+    public void placeChessPiece(){refresh();}
+    private void onSquare(int r,int c){if(game.isGameOver()||timedOut)return;advanceClock();if(clock.isFlagged()){timedOut=true;timeoutWinner=clock.getWinnerOnTime();timer.stop();refresh();return;}ChessPiece piece=game.getPiece(r,c);
+        if(selectedRow<0){if(piece!=null&&piece.getColor()==game.getTurn()){selectedRow=r;selectedCol=c;refresh();}return;}
+        if(piece!=null&&piece.getColor()==game.getTurn()){selectedRow=r;selectedCol=c;refresh();return;}
+        ChessPiece mover=game.getPiece(selectedRow,selectedCol);ChessPiece.Category promotion=ChessPiece.Category.QUEEN;
+        if(mover!=null&&mover.isPawn()&&(r==0||r==7)&&!GraphicsEnvironment.isHeadless()){
+            Object[] options={"Queen","Rook","Bishop","Knight"};int choice=JOptionPane.showOptionDialog(this,"Promote pawn to:","Pawn promotion",JOptionPane.DEFAULT_OPTION,JOptionPane.QUESTION_MESSAGE,null,options,options[0]);if(choice>=0)promotion=new ChessPiece.Category[]{ChessPiece.Category.QUEEN,ChessPiece.Category.ROOK,ChessPiece.Category.BISHOP,ChessPiece.Category.KNIGHT}[choice];
+        }
+        boolean moved=game.move(selectedRow,selectedCol,r,c,promotion);selectedRow=selectedCol=-1;
+        if(moved){if(game.isGameOver())timer.stop();else clock.moveCompleted();lastTick=System.nanoTime();}
+        refresh();
+    }
+    private void advanceClock(){long now=System.nanoTime();long elapsed=(now-lastTick)/1_000_000L;lastTick=now;clock.tick(elapsed);}
+    private void tick(){if(game.isGameOver()||clock.isFlagged())return;advanceClock();if(clock.isFlagged()){timer.stop();timedOut=true;timeoutWinner=clock.getWinnerOnTime();refresh();}else refreshClocks();}
+    private String format(long ms){long sec=(ms+999)/1000;return String.format("%d:%02d",sec/60,sec%60);}
+    private void refreshClocks(){whiteClock.setText("White  "+format(clock.getRemaining(ChessPiece.Color.WHITE)));blackClock.setText("Black  "+format(clock.getRemaining(ChessPiece.Color.BLACK)));whiteClock.setForeground(clock.getActive()==ChessPiece.Color.WHITE&&!game.isGameOver()&&!timedOut?new Color(30,90,180):Color.DARK_GRAY);blackClock.setForeground(clock.getActive()==ChessPiece.Color.BLACK&&!game.isGameOver()&&!timedOut?new Color(30,90,180):Color.DARK_GRAY);}
+    private void refresh(){for(int r=0;r<8;r++)for(int c=0;c<8;c++){SpotPanel sq=squares[r][c];sq.removeAll();sq.setBorder(r==selectedRow&&c==selectedCol?BorderFactory.createLineBorder(Color.YELLOW,4):null);ChessPiece p=game.getPiece(r,c);sq.getSpot().setChessPiece(p);if(p!=null){try{BufferedImage image=ImageIO.read(new File(p.getImage()));if(image!=null){int w=Math.max(24,sq.getWidth()>0?sq.getWidth()-16:64),h=Math.max(24,sq.getHeight()>0?sq.getHeight()-16:64);Image scaled=image.getScaledInstance(w,h,Image.SCALE_SMOOTH);JLabel icon=new JLabel(new ImageIcon(scaled));icon.addMouseListener(squareListeners[r][c]);sq.add(icon);}}catch(IOException ignored){sq.add(new JLabel(pieceSymbol(p)));}}sq.revalidate();sq.repaint();}
+        if(timedOut)message.setText(timeoutWinner+" wins on time");else if(game.getStatus()==ChessGame.Status.CHECKMATE)message.setText((game.getTurn()==ChessPiece.Color.WHITE?"Black":"White")+" wins by checkmate");else if(game.getStatus()==ChessGame.Status.STALEMATE)message.setText("Draw by stalemate");else if(game.getStatus()==ChessGame.Status.DRAW_REPETITION)message.setText("Draw claimed by threefold repetition");else if(game.getStatus()==ChessGame.Status.DRAW_FIFTY_MOVE)message.setText("Draw claimed by 50-move rule");else if(game.getStatus()==ChessGame.Status.DRAW_FIVEFOLD_REPETITION)message.setText("Draw by fivefold repetition");else if(game.getStatus()==ChessGame.Status.DRAW_SEVENTY_FIVE_MOVE)message.setText("Draw by 75-move rule");else if(game.getStatus()==ChessGame.Status.DRAW_INSUFFICIENT)message.setText("Draw by insufficient material");else message.setText(game.getTurn()+" to move"+(game.getStatus()==ChessGame.Status.CHECK?" — check":""));claimDraw.setEnabled(!timedOut&&(game.canClaimThreefoldDraw()||game.canClaimFiftyMoveDraw()));refreshClocks();}
+    private String pieceSymbol(ChessPiece p){String[] symbols={"♟","♚","♛","♜","♞","♝"};int i=p.isPawn()?0:p.isKing()?1:p.isQueen()?2:p.isRook()?3:p.isKnight()?4:5;return symbols[i];}
 }
