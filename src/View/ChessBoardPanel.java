@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.List;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
 /** Swing presentation for the chess rules engine. */
 public class ChessBoardPanel extends JPanel {
@@ -22,7 +23,11 @@ public class ChessBoardPanel extends JPanel {
     private final MouseListener[][] squareListeners = new MouseListener[8][8];
     private final ChessPiece[][] renderedPieces = new ChessPiece[8][8];
     private JPanel boardGrid;
+    private boolean boardFlipped;
+    private final java.util.List<String> moveEntries = new ArrayList<>();
+    private final JTextArea moveLog = new JTextArea(12, 14);
     private int pressedRow=-1, pressedCol=-1;
+    private Point pressPoint;
     private boolean dragCandidate;
     private List<Spot> selectedMoves = Collections.emptyList();
     private final JLabel whiteClock = new JLabel(), blackClock = new JLabel(), message = new JLabel("White to move");
@@ -51,13 +56,12 @@ public class ChessBoardPanel extends JPanel {
         for(int r=0;r<8;r++)for(int c=0;c<8;c++){
             final int row=r,col=c;SpotPanel sq=new SpotPanel(new Spot(r,c));sq.setLayout(new GridBagLayout());sq.setOpaque(true);sq.setBackground(baseColor(r,c));sq.setPreferredSize(new Dimension(86,86));sq.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             MouseAdapter listener=new MouseAdapter(){
-                @Override public void mousePressed(MouseEvent e){pressedRow=row;pressedCol=col;ChessPiece p=game.getPiece(row,col);dragCandidate=p!=null&&p.getColor()==game.getTurn();if(dragCandidate)selectPiece(row,col);}
-                @Override public void mouseReleased(MouseEvent e){if(!dragCandidate)return;Point point=SwingUtilities.convertPoint((Component)e.getSource(),e.getPoint(),boardGrid);int side=Math.min(boardGrid.getWidth(),boardGrid.getHeight());if(side<=0)return;int targetRow=point.y*8/side,targetCol=point.x*8/side;if(targetRow>=0&&targetRow<8&&targetCol>=0&&targetCol<8&&(targetRow!=pressedRow||targetCol!=pressedCol))onSquare(targetRow,targetCol);dragCandidate=false;}
-                @Override public void mouseClicked(MouseEvent e){onSquare(row,col);}
+                @Override public void mousePressed(MouseEvent e){ChessPiece p=game.getPiece(row,col);if(p!=null&&p.getColor()==game.getTurn()){pressedRow=row;pressedCol=col;dragCandidate=true;pressPoint=SwingUtilities.convertPoint((Component)e.getSource(),e.getPoint(),boardGrid);selectPiece(row,col);}else{dragCandidate=false;if(selectedRow>=0)onSquare(row,col);}}
+                @Override public void mouseReleased(MouseEvent e){if(!dragCandidate)return;Point point=SwingUtilities.convertPoint((Component)e.getSource(),e.getPoint(),boardGrid);if(pressPoint==null||pressPoint.distance(point)<5){dragCandidate=false;return;}Insets insets=boardGrid.getInsets();int innerWidth=boardGrid.getWidth()-insets.left-insets.right,innerHeight=boardGrid.getHeight()-insets.top-insets.bottom;if(innerWidth<=0||innerHeight<=0){dragCandidate=false;return;}int visualRow=(point.y-insets.top)*8/innerHeight,visualCol=(point.x-insets.left)*8/innerWidth;int targetRow=boardFlipped?7-visualRow:visualRow,targetCol=boardFlipped?7-visualCol:visualCol;if(targetRow>=0&&targetRow<8&&targetCol>=0&&targetCol<8&&(targetRow!=pressedRow||targetCol!=pressedCol))onSquare(targetRow,targetCol);dragCandidate=false;}
             };
             sq.addMouseListener(listener);squareListeners[r][c]=listener;squares[r][c]=sq;boardGrid.add(sq);
         }
-        squareHolder.add(boardGrid);add(squareHolder,BorderLayout.CENTER);message.setHorizontalAlignment(SwingConstants.CENTER);message.setFont(new Font(Font.SANS_SERIF,Font.BOLD,16));JPanel footer=new JPanel(new BorderLayout());footer.add(message,BorderLayout.CENTER);claimDraw.setEnabled(false);claimDraw.addActionListener(e->{if(game.claimThreefoldDraw()||game.claimFiftyMoveDraw()){timer.stop();refresh();}});footer.add(claimDraw,BorderLayout.EAST);add(footer,BorderLayout.SOUTH);
+        squareHolder.add(boardGrid);add(squareHolder,BorderLayout.CENTER);moveLog.setEditable(false);moveLog.setLineWrap(true);moveLog.setWrapStyleWord(true);moveLog.setFont(new Font(Font.MONOSPACED,Font.PLAIN,13));JScrollPane logScroll=new JScrollPane(moveLog);logScroll.setBorder(BorderFactory.createTitledBorder("Moves"));add(logScroll,BorderLayout.EAST);message.setHorizontalAlignment(SwingConstants.CENTER);message.setFont(new Font(Font.SANS_SERIF,Font.BOLD,16));JPanel footer=new JPanel(new BorderLayout());footer.add(message,BorderLayout.CENTER);claimDraw.setEnabled(false);claimDraw.addActionListener(e->{if(game.claimThreefoldDraw()||game.claimFiftyMoveDraw()){timer.stop();refresh();}});footer.add(claimDraw,BorderLayout.EAST);add(footer,BorderLayout.SOUTH);
         refresh();lastTick=System.nanoTime();timer.start();
     }
     public void placeChessPiece(){refresh();}
@@ -68,7 +72,8 @@ public class ChessBoardPanel extends JPanel {
         if(mover!=null&&mover.isPawn()&&(r==0||r==7)&&!GraphicsEnvironment.isHeadless()){
             Object[] options={"Queen","Rook","Bishop","Knight"};int choice=JOptionPane.showOptionDialog(this,"Promote pawn to:","Pawn promotion",JOptionPane.DEFAULT_OPTION,JOptionPane.QUESTION_MESSAGE,null,options,options[0]);if(choice>=0)promotion=new ChessPiece.Category[]{ChessPiece.Category.QUEEN,ChessPiece.Category.ROOK,ChessPiece.Category.BISHOP,ChessPiece.Category.KNIGHT}[choice];
         }
-        boolean moved=game.move(selectedRow,selectedCol,r,c,promotion);selectedRow=selectedCol=-1;selectedMoves=Collections.emptyList();
+        int fromRow=selectedRow,fromCol=selectedCol;String notation=moveNotation(mover,fromRow,fromCol,r,c,promotion);boolean moved=game.move(selectedRow,selectedCol,r,c,promotion);selectedRow=selectedCol=-1;selectedMoves=Collections.emptyList();
+        if(moved){if(game.getStatus()==ChessGame.Status.CHECK)notation+="+";else if(game.getStatus()==ChessGame.Status.CHECKMATE)notation+="#";moveEntries.add(((moveEntries.size()/2)+1)+(moveEntries.size()%2==0?". ":"... ")+notation);moveLog.setText(String.join("\n",moveEntries));moveLog.setCaretPosition(moveLog.getDocument().getLength());}
         if(moved){if(game.isGameOver())timer.stop();else clock.moveCompleted();lastTick=System.nanoTime();}
         refresh();
     }
@@ -77,9 +82,11 @@ public class ChessBoardPanel extends JPanel {
     private String format(long ms){long sec=(ms+999)/1000;return String.format("%d:%02d",sec/60,sec%60);}
     private void refreshClocks(){whiteClock.setText("White  "+format(clock.getRemaining(ChessPiece.Color.WHITE)));blackClock.setText("Black  "+format(clock.getRemaining(ChessPiece.Color.BLACK)));whiteClock.setForeground(clock.getActive()==ChessPiece.Color.WHITE&&!game.isGameOver()&&!timedOut?new Color(30,90,180):Color.DARK_GRAY);blackClock.setForeground(clock.getActive()==ChessPiece.Color.BLACK&&!game.isGameOver()&&!timedOut?new Color(30,90,180):Color.DARK_GRAY);}
     private void selectPiece(int row,int col){selectedRow=row;selectedCol=col;selectedMoves=game.getLegalMoves(row,col);refresh();}
+    private String moveNotation(ChessPiece p,int fr,int fc,int tr,int tc,ChessPiece.Category promotion){String from=""+(char)('a'+fc)+(8-fr),to=""+(char)('a'+tc)+(8-tr);ChessPiece captured=game.getPiece(tr,tc);boolean ep=p.isPawn()&&fc!=tc&&captured==null;boolean capture=captured!=null||ep;if(p.isKing()&&Math.abs(tc-fc)==2)return tc>fc?"O-O":"O-O-O";String prefix="";if(!p.isPawn()){switch(p.getCategory()){case KING:prefix="K";break;case QUEEN:prefix="Q";break;case ROOK:prefix="R";break;case BISHOP:prefix="B";break;default:prefix="N";}}String result=prefix+(p.isPawn()?from:"")+(capture?"x":"-")+to;if(p.isPawn()&&(tr==0||tr==7))result+="="+promotion.name().charAt(0);return result;}
     private Color baseColor(int row,int col){return ((row+col)&1)==0?new Color(238,238,210):new Color(118,150,86);}
     private boolean isHighlighted(int row,int col){for(Spot move:selectedMoves)if(move.getRow()==row&&move.getColumn()==col)return true;return false;}
     private void refresh(){
+        boolean shouldFlip=game.getTurn()==ChessPiece.Color.BLACK;if(shouldFlip!=boardFlipped){boardGrid.removeAll();for(int vr=0;vr<8;vr++)for(int vc=0;vc<8;vc++){int r=shouldFlip?7-vr:vr,c=shouldFlip?7-vc:vc;boardGrid.add(squares[r][c]);}boardFlipped=shouldFlip;boardGrid.revalidate();}
         for(int r=0;r<8;r++)for(int c=0;c<8;c++){
             SpotPanel square=squares[r][c];ChessPiece piece=game.getPiece(r,c);square.getSpot().setChessPiece(piece);
             if(renderedPieces[r][c]!=piece){square.removeAll();if(piece!=null){try{BufferedImage image=ImageIO.read(new File(piece.getImage()));if(image!=null){int size=Math.max(24,Math.min(square.getWidth(),square.getHeight())-16);if(size<=24)size=64;Image scaled=image.getScaledInstance(size,size,Image.SCALE_SMOOTH);JLabel icon=new JLabel(new ImageIcon(scaled));icon.addMouseListener(squareListeners[r][c]);square.add(icon);}else square.add(new JLabel(pieceSymbol(piece)));}catch(IOException ignored){square.add(new JLabel(pieceSymbol(piece)));}}renderedPieces[r][c]=piece;}
