@@ -1,28 +1,12 @@
 package View;
 
-
-import Model.Spot;
-
 import javax.swing.*;
 import java.io.IOException;
 
-public class ApplicationFrame extends JFrame  {
-	ChessBoardPanel chessBoard = new ChessBoardPanel();
-
-	public ApplicationFrame() throws IOException {
-		this.add(chessBoard);
-		this.setSize(1920, 1080);
-		this.setVisible(true);
-		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
-	}
-
-	public void placeChessPiece(){
-		try {
-			chessBoard.placeChessPiece();
-		} catch (IOException | InterruptedException e) {
-			throw new RuntimeException(e);
-		}
+public class ApplicationFrame extends JFrame {
+    private final ChessBoardPanel chessBoard = new ChessBoardPanel();
+    public ApplicationFrame() throws IOException {
+        super("Chess");setDefaultCloseOperation(EXIT_ON_CLOSE);setContentPane(chessBoard);setSize(900,900);setMinimumSize(new java.awt.Dimension(620,680));setLocationRelativeTo(null);setVisible(true);
     }
-
-
+    public void placeChessPiece(){chessBoard.placeChessPiece();}
 }
