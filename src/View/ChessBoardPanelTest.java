@@ -27,15 +27,17 @@ public final class ChessBoardPanelTest {
             if(squares[4][4].getBackground().equals(new Color(238,238,210))||squares[4][4].getBackground().equals(new Color(118,150,86)))throw new AssertionError("legal destination was not highlighted");
             click(squares[3][4]);if(game.getTurn()!=ChessPiece.Color.WHITE||clock.getActive()!=ChessPiece.Color.WHITE)throw new AssertionError("invalid move switched turns");
             click(squares[6][4]);click(squares[4][4]);if(game.getTurn()!=ChessPiece.Color.BLACK||clock.getActive()!=ChessPiece.Color.BLACK)throw new AssertionError("valid single-click move did not switch both turns");
+            if(!(Boolean)field(panel,"orientationTransitioning"))throw new AssertionError("turn change did not start a smooth board transition");
+            Method finishFlip=ChessBoardPanel.class.getDeclaredMethod("completeBoardFlip");finishFlip.setAccessible(true);finishFlip.invoke(panel);
             if(board.getComponent(0)!=squares[7][7])throw new AssertionError("board did not flip to Black's perspective");
             JTextArea log=(JTextArea)field(panel,"moveLog");if(!log.getText().contains("1. e2-e4"))throw new AssertionError("move was not logged");
-            click(squares[1][4]);click(squares[3][4]);if(game.getTurn()!=ChessPiece.Color.WHITE||board.getComponent(0)!=squares[0][0])throw new AssertionError("board did not flip back: turn="+game.getTurn()+", top="+board.getComponent(0)+", expected="+squares[0][0]);
+            click(squares[1][4]);click(squares[3][4]);if(game.getTurn()!=ChessPiece.Color.WHITE||!(Boolean)field(panel,"orientationTransitioning"))throw new AssertionError("Black move did not start transition back to White");finishFlip.invoke(panel);if(board.getComponent(0)!=squares[0][0])throw new AssertionError("board did not flip back to White's perspective");
 
             Object[] pieces={7,7,ChessPiece.Category.KING,ChessPiece.Color.WHITE,0,4,ChessPiece.Category.KING,ChessPiece.Color.BLACK,3,4,ChessPiece.Category.QUEEN,ChessPiece.Color.WHITE};
             Method setup=ChessGame.class.getDeclaredMethod("setupForTest",ChessPiece.Color.class,Object[].class);setup.setAccessible(true);setup.invoke(game,ChessPiece.Color.BLACK,pieces);
             Method refresh=ChessBoardPanel.class.getDeclaredMethod("refresh");refresh.setAccessible(true);refresh.invoke(panel);
             JLabel message=(JLabel)field(panel,"message");if(!message.getText().contains("CHECK"))throw new AssertionError("check status missing from UI");
-            if(!squares[0][4].getBackground().equals(new Color(220,92,92)))throw new AssertionError("checked king square not highlighted");stopTimer(panel);
+            if(!squares[0][4].getBackground().equals(new Color(220,92,92)))throw new AssertionError("checked king square not highlighted");stopTimer(panel);((Timer)field(panel,"flipTimer")).stop();
 
             ChessBoardPanel dragPanel=panel();stopTimer(dragPanel);dragPanel.setSize(900,1000);layoutTree(dragPanel);SpotPanel[][] dragSquares=(SpotPanel[][])field(dragPanel,"squares");JPanel dragBoard=(JPanel)field(dragPanel,"boardGrid");
             Component source=dragSquares[6][4].getComponent(0);Point destination=SwingUtilities.convertPoint(dragSquares[4][4],new Point(dragSquares[4][4].getWidth()/2,dragSquares[4][4].getHeight()/2),source);long now=System.currentTimeMillis();
