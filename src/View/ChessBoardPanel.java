@@ -25,13 +25,6 @@ public class ChessBoardPanel extends JPanel {
     private JPanel boardGrid;
     private JPanel squareHolder;
     private boolean boardFlipped;
-    private boolean orientationTransitioning;
-    private boolean pendingBoardFlip;
-    private boolean midpointCaptured;
-    private long flipStartedAt;
-    private BufferedImage flipSnapshot;
-    private final int flipDurationMs=420;
-    private Timer flipTimer;
     private final java.util.List<String> moveEntries = new ArrayList<>();
     private final JTextArea moveLog = new JTextArea(12, 14);
     private int pressedRow=-1, pressedCol=-1;
@@ -60,13 +53,12 @@ public class ChessBoardPanel extends JPanel {
         squareHolder=new JPanel(null){
             @Override public void doLayout(){int side=Math.min(getWidth(),getHeight());int x=(getWidth()-side)/2;int y=(getHeight()-side)/2;boardGrid.setBounds(x,y,side,side);boardGrid.doLayout();}
             @Override public Dimension getPreferredSize(){return new Dimension(688,688);}
-            @Override protected void paintChildren(Graphics graphics){super.paintChildren(graphics);if(flipSnapshot==null||boardGrid.getWidth()<=0)return;Graphics2D g=(Graphics2D)graphics.create();int side=boardGrid.getWidth();int x=boardGrid.getX(),y=boardGrid.getY();double elapsed=Math.min(1.0,(System.nanoTime()-flipStartedAt)/(flipDurationMs*1_000_000.0));double phase=elapsed<0.5?elapsed*2:(elapsed-0.5)*2;double scale=Math.max(0.02,Math.cos(phase*Math.PI/2));g.setColor(getBackground());g.fillRect(x,y,side,side);g.translate(x+side/2.0,y+side/2.0);g.scale(scale,1);g.translate(-side/2.0,-side/2.0);g.drawImage(flipSnapshot,0,0,side,side,null);g.dispose();}
         };
         for(int r=0;r<8;r++)for(int c=0;c<8;c++){
             final int row=r,col=c;SpotPanel sq=new SpotPanel(new Spot(r,c));sq.setLayout(new GridBagLayout());sq.setOpaque(true);sq.setBackground(baseColor(r,c));sq.setPreferredSize(new Dimension(86,86));sq.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             MouseAdapter listener=new MouseAdapter(){
-                @Override public void mousePressed(MouseEvent e){if(orientationTransitioning)return;ChessPiece p=game.getPiece(row,col);if(p!=null&&p.getColor()==game.getTurn()){pressedRow=row;pressedCol=col;dragCandidate=true;pressPoint=SwingUtilities.convertPoint((Component)e.getSource(),e.getPoint(),boardGrid);selectPiece(row,col);}else{dragCandidate=false;if(selectedRow>=0)onSquare(row,col);}}
-                @Override public void mouseReleased(MouseEvent e){if(!dragCandidate||orientationTransitioning)return;Point point=SwingUtilities.convertPoint((Component)e.getSource(),e.getPoint(),boardGrid);if(pressPoint==null||pressPoint.distance(point)<5){dragCandidate=false;return;}Insets insets=boardGrid.getInsets();int innerWidth=boardGrid.getWidth()-insets.left-insets.right,innerHeight=boardGrid.getHeight()-insets.top-insets.bottom;if(innerWidth<=0||innerHeight<=0){dragCandidate=false;return;}int visualRow=(point.y-insets.top)*8/innerHeight,visualCol=(point.x-insets.left)*8/innerWidth;int targetRow=boardFlipped?7-visualRow:visualRow,targetCol=boardFlipped?7-visualCol:visualCol;if(targetRow>=0&&targetRow<8&&targetCol>=0&&targetCol<8&&(targetRow!=pressedRow||targetCol!=pressedCol))onSquare(targetRow,targetCol);dragCandidate=false;}
+                @Override public void mousePressed(MouseEvent e){ChessPiece p=game.getPiece(row,col);if(p!=null&&p.getColor()==game.getTurn()){pressedRow=row;pressedCol=col;dragCandidate=true;pressPoint=SwingUtilities.convertPoint((Component)e.getSource(),e.getPoint(),boardGrid);selectPiece(row,col);}else{dragCandidate=false;if(selectedRow>=0)onSquare(row,col);}}
+                @Override public void mouseReleased(MouseEvent e){if(!dragCandidate)return;Point point=SwingUtilities.convertPoint((Component)e.getSource(),e.getPoint(),boardGrid);if(pressPoint==null||pressPoint.distance(point)<5){dragCandidate=false;return;}Insets insets=boardGrid.getInsets();int innerWidth=boardGrid.getWidth()-insets.left-insets.right,innerHeight=boardGrid.getHeight()-insets.top-insets.bottom;if(innerWidth<=0||innerHeight<=0){dragCandidate=false;return;}int visualRow=(point.y-insets.top)*8/innerHeight,visualCol=(point.x-insets.left)*8/innerWidth;int targetRow=boardFlipped?7-visualRow:visualRow,targetCol=boardFlipped?7-visualCol:visualCol;if(targetRow>=0&&targetRow<8&&targetCol>=0&&targetCol<8&&(targetRow!=pressedRow||targetCol!=pressedCol))onSquare(targetRow,targetCol);dragCandidate=false;}
             };
             sq.addMouseListener(listener);squareListeners[r][c]=listener;squares[r][c]=sq;boardGrid.add(sq);
         }
@@ -95,7 +87,7 @@ public class ChessBoardPanel extends JPanel {
     private Color baseColor(int row,int col){return ((row+col)&1)==0?new Color(238,238,210):new Color(118,150,86);}
     private boolean isHighlighted(int row,int col){for(Spot move:selectedMoves)if(move.getRow()==row&&move.getColumn()==col)return true;return false;}
     private void refresh(){
-        boolean shouldFlip=game.getTurn()==ChessPiece.Color.BLACK;if(shouldFlip!=boardFlipped&&!orientationTransitioning)startBoardFlip(shouldFlip);
+        boolean shouldFlip=game.getTurn()==ChessPiece.Color.BLACK;if(shouldFlip!=boardFlipped)applyBoardOrientation(shouldFlip);
         for(int r=0;r<8;r++)for(int c=0;c<8;c++){
             SpotPanel square=squares[r][c];ChessPiece piece=game.getPiece(r,c);square.getSpot().setChessPiece(piece);
             if(renderedPieces[r][c]!=piece){square.removeAll();if(piece!=null){try{BufferedImage image=ImageIO.read(new File(piece.getImage()));if(image!=null){int size=Math.max(24,Math.min(square.getWidth(),square.getHeight())-16);if(size<=24)size=64;Image scaled=image.getScaledInstance(size,size,Image.SCALE_SMOOTH);JLabel icon=new JLabel(new ImageIcon(scaled));icon.addMouseListener(squareListeners[r][c]);square.add(icon);}else square.add(new JLabel(pieceSymbol(piece)));}catch(IOException ignored){square.add(new JLabel(pieceSymbol(piece)));}}renderedPieces[r][c]=piece;}
@@ -106,10 +98,6 @@ public class ChessBoardPanel extends JPanel {
         if(timedOut)message.setText(timeoutWinner+" wins on time");else if(game.getStatus()==ChessGame.Status.CHECKMATE)message.setText((game.getTurn()==ChessPiece.Color.WHITE?"Black":"White")+" wins by checkmate");else if(game.getStatus()==ChessGame.Status.STALEMATE)message.setText("Draw by stalemate");else if(game.getStatus()==ChessGame.Status.DRAW_REPETITION)message.setText("Draw claimed by threefold repetition");else if(game.getStatus()==ChessGame.Status.DRAW_FIFTY_MOVE)message.setText("Draw claimed by 50-move rule");else if(game.getStatus()==ChessGame.Status.DRAW_FIVEFOLD_REPETITION)message.setText("Draw by fivefold repetition");else if(game.getStatus()==ChessGame.Status.DRAW_SEVENTY_FIVE_MOVE)message.setText("Draw by 75-move rule");else if(game.getStatus()==ChessGame.Status.DRAW_INSUFFICIENT)message.setText("Draw by insufficient material");else message.setText(game.getTurn()+" to move"+(game.getStatus()==ChessGame.Status.CHECK?" — CHECK":""));
         claimDraw.setEnabled(!timedOut&&(game.canClaimThreefoldDraw()||game.canClaimFiftyMoveDraw()));refreshClocks();
     }
-    private void startBoardFlip(boolean flip){pendingBoardFlip=flip;orientationTransitioning=true;midpointCaptured=false;flipStartedAt=System.nanoTime();flipSnapshot=captureBoard();flipTimer=new Timer(16,e->animateBoardFlip());flipTimer.start();}
-    private BufferedImage captureBoard(){int width=Math.max(1,boardGrid.getWidth()),height=Math.max(1,boardGrid.getHeight());BufferedImage image=new BufferedImage(width,height,BufferedImage.TYPE_INT_ARGB);Graphics2D g=image.createGraphics();boardGrid.paint(g);g.dispose();return image;}
-    private void animateBoardFlip(){double elapsed=Math.min(1.0,(System.nanoTime()-flipStartedAt)/(flipDurationMs*1_000_000.0));if(elapsed>=0.5&&!midpointCaptured){applyBoardOrientation(pendingBoardFlip);flipSnapshot=captureBoard();midpointCaptured=true;}if(elapsed>=1.0)completeBoardFlip();else squareHolder.repaint();}
     private void applyBoardOrientation(boolean flip){boardGrid.removeAll();for(int vr=0;vr<8;vr++)for(int vc=0;vc<8;vc++){int r=flip?7-vr:vr,c=flip?7-vc:vc;boardGrid.add(squares[r][c]);}boardFlipped=flip;boardGrid.revalidate();boardGrid.repaint();}
-    private void completeBoardFlip(){if(flipTimer!=null)flipTimer.stop();if(!midpointCaptured)applyBoardOrientation(pendingBoardFlip);flipSnapshot=null;orientationTransitioning=false;squareHolder.repaint();}
     private String pieceSymbol(ChessPiece p){String[] symbols={"♟","♚","♛","♜","♞","♝"};int i=p.isPawn()?0:p.isKing()?1:p.isQueen()?2:p.isRook()?3:p.isKnight()?4:5;return symbols[i];}
 }
